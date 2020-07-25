@@ -28,7 +28,7 @@
 		<script src="js/OrbitControls.js"></script>
 		<script src="js/three.module.js"></script>
 		<script src="ColorGui.js"></script>
-		
+		<script src="js/stats.module.js"></script>
 		<script>
 			let camera,renderer,scene,controls,mesh,meshGroup,meshes;
 			function createMaterials() {
@@ -182,7 +182,11 @@
 			brownDark:0x23190f,
 			blue:0x68c3c0,
 			};
-			
+			var params = {
+					Spherify: 0,
+					Twist: 0,
+					open: false,
+			};
 
 			function resizeRendererToDisplaySize(renderer) {
 				const canvas = renderer.domElement;
@@ -240,6 +244,8 @@
 			ballMesh.position.set( 5, 0.25, 1 );
 			ballMesh.rotation.y = Math.PI;
 			ballMesh.castShadow = true;
+			ballMesh.visible = false;
+			
 			scene.add( ballMesh );
 
 
@@ -263,7 +269,8 @@
 				rotationX: 0,
 				rotationY: 1,
 			}
-	
+			stats = new Stats();
+			renderer.domElement.appendChild( stats.dom );
 			function renderOject(time){
 				time *= 0.001;
 				if (resizeRendererToDisplaySize(renderer)) {
@@ -271,12 +278,24 @@
 					camera.aspect = canvas.clientWidth / canvas.clientHeight;
 					camera.updateProjectionMatrix();
 				}
+				
 				ballMesh.rotation.y = objectControls.speed*time;
+				ballMesh.rotation.z = objectControls.speed*time;
+
 				cubeMesh.rotation.x = objectControls.rotationX*time;
 				cubeMesh.rotation.y = objectControls.rotationY*time;
 				renderer.render(scene, camera);
+				stats.update();
+				if(params.open ){
+					ballMesh.visible = true;
+				}else{
+					ballMesh.visible = false;
+				}
 				requestAnimationFrame(renderOject);
 			}
+
+
+			
 			//GUI 
 			const datGui  = new dat.GUI({ autoPlace: true });
 
@@ -289,10 +308,7 @@
 			cubeGui.add(objectControls, 'rotationX',0,5).name("rotation X").listen();
 			cubeGui.add(objectControls, 'rotationY',0,5).name("rotation Y").listen();
 			cubeGui.open()
-			var params = {
-					Spherify: 0,
-					Twist: 0,
-			};
+			
 			var folder = datGui.addFolder( 'Morph Targets' );
 
 			folder.add( params, 'Spherify', 0, 1 ).step( 0.01 ).onChange( function ( value ) {
@@ -307,6 +323,9 @@
 			} );
 
 			folder.open();
+
+			var earthOpen = datGui.addFolder('Earth World');
+			earthOpen.add(params, 'open', false).listen();
 			requestAnimationFrame(renderOject)
 			
 		</script>
