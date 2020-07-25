@@ -241,7 +241,7 @@
 
 			var ballGeometry = new THREE.SphereBufferGeometry( 0.25, 32, 32 );
 			var ballMesh = new THREE.Mesh( ballGeometry, ballMat );
-			ballMesh.position.set( -5, 0.25, 0 );
+			ballMesh.position.set( -4, 0.25, 0 );
 			ballMesh.rotation.y = Math.PI;
 			ballMesh.castShadow = true;
 			ballMesh.visible = false;
@@ -292,7 +292,6 @@
 					material.cube.color.setHex( 0xff836125);
 				}else{
 					ballMesh.visible = false;
-					meshes.cube.morphTargetInfluences[ 0 ] = 0;
 				}
 				stats.update();
 				requestAnimationFrame(renderOject);
@@ -328,8 +327,9 @@
 
 			folder.open();
 
-			var earthOpen = datGui.addFolder('Earth World');
+			var earthOpen = datGui.addFolder('Galaxy');
 			earthOpen.add(params, 'open', false).listen();
+			earthOpen.open();
 			requestAnimationFrame(renderOject)
 			
 		</script>
