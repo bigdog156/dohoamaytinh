@@ -271,7 +271,7 @@
 					camera.aspect = canvas.clientWidth / canvas.clientHeight;
 					camera.updateProjectionMatrix();
 				}
-				
+				ballMesh.rotation.y = objectControls.speed.time;
 				cubeMesh.rotation.x = objectControls.rotationX*time;
 				cubeMesh.rotation.y = objectControls.rotationY*time;
 				renderer.render(scene, camera);
