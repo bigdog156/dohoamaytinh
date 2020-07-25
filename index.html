@@ -129,7 +129,7 @@
 			}
 			function createCamera() {
 				// Create a Camera
-				const fov = 25; // AKA Field of View
+				const fov = 40; // AKA Field of View
 				const aspect = window.innerWidth / window.innerHeight;
 				const near = 0.1; // the near clipping plane
 				const far = 1000; // the far clipping plane
@@ -241,7 +241,7 @@
 
 			var ballGeometry = new THREE.SphereBufferGeometry( 0.25, 32, 32 );
 			var ballMesh = new THREE.Mesh( ballGeometry, ballMat );
-			ballMesh.position.set( 5, 0.25, 1 );
+			ballMesh.position.set( -5, 0.25, 0 );
 			ballMesh.rotation.y = Math.PI;
 			ballMesh.castShadow = true;
 			ballMesh.visible = false;
@@ -280,7 +280,7 @@
 				}
 				
 				ballMesh.rotation.y = objectControls.speed*time;
-				ballMesh.rotation.z = objectControls.speed*time;
+				// ballMesh.rotation.z = objectControls.speed*time;
 
 				cubeMesh.rotation.x = objectControls.rotationX*time;
 				cubeMesh.rotation.y = objectControls.rotationY*time;
