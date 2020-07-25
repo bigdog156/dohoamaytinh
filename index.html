@@ -6,79 +6,168 @@
 		<style>
 			body { margin: 0; }
 			canvas { display: block; }
+
+			#c {
+			   width: 100%;
+			   height: 100%;
+			   display: block;
+			}
 		</style>
 	</head>
 	<body>
-
 		<script src="js/three.js"></script>
-		<script src = "cubeMaterial.js"></script>
+		<script src="js/gui.min.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="ColorGui.js"></script>
 		<script>
+			function createMaterials() {
+				const cube =  new THREE.MeshStandardMaterial({
+					color: 0xbe6b6b,
+					flatShading: true
+				})
+				cube.color.convertSRGBToLinear();
+				material = {
+					cube
+				}
+				return material;
+			}
+			function createLights() {
+        		// Create a directional light
+				const ambientLight = new THREE.HemisphereLight(0xddeeff, 0x202020, 9);
+				mainLight = new THREE.DirectionalLight(0xffffff, 3.0);
+				scene.add(ambientLight);
+
+				// move the light back and up a bit
+				mainLight.position.set(10, 10, 10);
+
+				// remember to add the light to the scene
+				scene.add(ambientLight, mainLight);
+			}
+			function createGeometries() {
+				const cube = new THREE.BoxGeometry( 1, 1, 1 );
+				return {
+					cube
+				}
+			}
+			function createCamera() {
+				// Create a Camera
+				const fov = 25; // AKA Field of View
+				const aspect = window.innerWidth / window.innerHeight;
+				const near = 0.1; // the near clipping plane
+				const far = 1000; // the far clipping plane
+
+				camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+				camera.position.set(-4, 2, 4);
+
+			}
+			function createMeshes() {
+				const materials = createMaterials();
+				const geometries = createGeometries();
+				cubeMesh =  new THREE.Mesh( geometries.cube, materials.cube );
+				const group = new THREE.Group();
+				group.add(cubeMesh);
+				cubeGroup = group;
+
+				// Add the mesh to the scene
+				scene.add(group);
+			}
+			function createRenderer() {
+        		// create the renderer
+				renderer = new THREE.WebGLRenderer({
+					antialias: true
+				});
+
+				renderer.setSize(width, height);
+				renderer.setPixelRatio(window.devicePixelRatio);
+				renderer.gammaFactor = 2.2;
+				renderer.gammaOutput = true;
+				renderer.physicallyCorrectLights = true;
+			}
+
+			var Colors = {
+			red:0xf25346,
+			white:0xd8d0d1,
+			pink:0xF5986E,
+			brown:0x59332e,
+			brownDark:0x23190f,
+			blue:0x68c3c0,
+			};
+			
+
+			function resizeRendererToDisplaySize(renderer) {
+				const canvas = renderer.domElement;
+				const pixelRatio = window.devicePixelRatio;
+				const width  = canvas.clientWidth  * pixelRatio | 0;
+				const height = canvas.clientHeight * pixelRatio | 0;
+				const needResize = canvas.width !== width || canvas.height !== height;
+				if (needResize) {
+				renderer.setSize(width, height, false);
+				}
+				return needResize;
+			}
+
+
+
 			// Our Javascript will go here.
 			var scene = new THREE.Scene();
 
-			//Thêm chiếu sáng
-			{
-			const color = 0xFFFFFF;
-			const intensity = 1;
-			const light = new THREE.DirectionalLight(color, intensity);
-			light.position.set(-1, 2, 4);
-			scene.add(light);
-			}
-			//Camera
-			var camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
+			scene.background = new THREE.Color('skyblue');
+			
+			createLights()
+			
+			createCamera();
+
+			createMeshes()
 
 			var renderer = new THREE.WebGLRenderer();
+
 			renderer.setSize( window.innerWidth, window.innerHeight );
+
+			renderer.setPixelRatio( window.devicePixelRatio );
+
+			renderer.gammaFactor = 2.2;
+			
+			renderer.physicallyCorrectLights = true;
+
 			document.body.appendChild( renderer.domElement );
+			
+			
+			var controls = new THREE.OrbitControls(camera, renderer.domElement);
 
-			// Tạo vật liệu
-			var boxSize = [1,1,1]
-			var geometry = new THREE.BoxGeometry(boxSize[0], boxSize[1], boxSize[2]);
-			var material = new THREE.MeshPhongMaterial( { color: 0xff0093bb} );
-			var cube = new THREE.Mesh( geometry, material );
-			// scene.add( cube );
-
-			camera.position.z = 10;
-
-			var animate = function () {
-				// Hàm nhận biết khi có sự thay đổi của Frame hình
-				requestAnimationFrame( animate );
-
-				cube.rotation.x += 0.01;
-				cube.rotation.y += 0.01;
-				// cube.rotation.z += 0.01;
-
-				renderer.render( scene, camera );
-			};
-
-			// function makeCube(geometry, color, x){
-			// 	const material = new THREE.MeshPhongMaterial({color});
-			//
-			// 	const cube = new THREE.Mesh(geometry,material);
-			//
-			// 	scene.add(cube);
-			// 	cube.position.x = x;
-			// 	return cube;
-			// }
-
-			const cubes = [
-				makeCube(geometry, 0xff0093bb, -4),
-				makeCube(geometry, 0xff009300, 0),
-				makeCube(geometry, 0xff0453bb, 4)
-			]
+			const objectControls = {
+				speed: 1,
+				rotationX: 0,
+				rotationY: 1,
+			}
+		
 			function renderOject(time){
 				time *= 0.001;
-				cubes.forEach((cube, index)=>{
-					const speed = 1 + index*0.1;
-					const rot = time*speed;
-					cube.rotation.x = rot;
-					cube.rotation.y= rot;
-				});
+				if (resizeRendererToDisplaySize(renderer)) {
+					const canvas = renderer.domElement;
+					camera.aspect = canvas.clientWidth / canvas.clientHeight;
+					camera.updateProjectionMatrix();
+					}
+					cubeMesh.rotation.x = objectControls.rotationX*time;
+					cubeMesh.rotation.y = objectControls.rotationY*time;
 				renderer.render(scene, camera);
 				requestAnimationFrame(renderOject);
 			}
+
+			//GUI 
+			const datGui  = new dat.GUI({ autoPlace: true });
+
+
+			cubeGui = datGui.addFolder(`Cube`)
+			cubeGui.add(cubeMesh.scale, 'x', 1, 5).name("Width").listen();
+			cubeGui.add(cubeMesh.scale, 'y', 1, 5).name("Height").listen();
+			cubeGui.add(cubeMesh.scale, 'z', 1, 5).name("Deep").listen();
+			cubeGui.addColor(new ColorGUIHelper(material.cube,'color'),'value').name('color').listen();
+			cubeGui.add(objectControls, 'rotationX',0,5).name("rotation X").listen();
+			cubeGui.add(objectControls, 'rotationY',0,5).name("rotation Y").listen();
+			cubeGui.open()
 			requestAnimationFrame(renderOject)
-			// animate();
-			</script>
+			
+		</script>
+
 	</body>
 </html>
