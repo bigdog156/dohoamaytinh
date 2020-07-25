@@ -2,9 +2,10 @@
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>My first three.js app</title>
+		<title>CS105 - Do hoa may tinh</title>
 		<style>
-			body { margin: 0; }
+			body { margin: 0; 
+				text-align: center;}
 			canvas { display: block; }
 
 			#c {
@@ -12,25 +13,53 @@
 			   height: 100%;
 			   display: block;
 			}
+			h1 {
+				position: absolute;
+				width: 100%;
+				z-index: 1;
+				font-size: 1.5rem;
+			}
 		</style>
 	</head>
 	<body>
+		<h1 class="title"> CS105 - Đồ Hoạ Máy Tính</h1>
 		<script src="js/three.js"></script>
 		<script src="js/gui.min.js"></script>
 		<script src="js/OrbitControls.js"></script>
+		<script src="js/three.module.js"></script>
 		<script src="ColorGui.js"></script>
+		
 		<script>
+			let camera,renderer,scene,controls,mesh,meshGroup,meshes;
 			function createMaterials() {
 				const cube =  new THREE.MeshStandardMaterial({
 					color: 0xbe6b6b,
-					flatShading: true
+					flatShading: true,
+					morphTargets: true
 				})
-				cube.color.convertSRGBToLinear();
+
+				const earth =  new THREE.MeshPhongMaterial({
+					color: 0x393232,
+					emissive: 0x112244,
+					flatShading: true
+				});
+				
+				const moon =  new THREE.MeshPhongMaterial({
+					emissive: '#191A0F',
+					flatShading: true
+				});
+				
+				[cube,earth,moon].forEach(m=>{
+					m.color.convertSRGBToLinear();
+				})
 				material = {
-					cube
+					cube,
+					earth,
+					moon
 				}
 				return material;
 			}
+			
 			function createLights() {
         		// Create a directional light
 				const ambientLight = new THREE.HemisphereLight(0xddeeff, 0x202020, 9);
@@ -45,8 +74,57 @@
 			}
 			function createGeometries() {
 				const cube = new THREE.BoxGeometry( 1, 1, 1 );
+				const sphere = new THREE.SphereBufferGeometry( 1, 12, 12 );
+
+				// ADD Feature
+				var geometry = new THREE.BoxBufferGeometry( 2, 2, 2, 32, 32, 32 );
+
+				// create an empty array to  hold targets for the attribute we want to morph
+				// morphing positions and normals is supported
+				geometry.morphAttributes.position = [];
+
+				// the original positions of the cube's vertices
+				var positions = geometry.attributes.position.array;
+
+				// for the first morph target we'll move the cube's vertices onto the surface of a sphere
+				var spherePositions = [];
+
+				// for the second morph target, we'll twist the cubes vertices
+				var twistPositions = [];
+				var direction = new THREE.Vector3( 1, 0, 0 ).normalize();
+				var vertex = new THREE.Vector3();
+
+				for ( var i = 0; i < positions.length; i += 3 ) {
+
+					var x = positions[ i ];
+					var y = positions[ i + 1 ];
+					var z = positions[ i + 2 ];
+
+					spherePositions.push(
+
+						x * Math.sqrt( 1 - ( y * y / 2 ) - ( z * z / 2 ) + ( y * y * z * z / 3 ) ),
+						y * Math.sqrt( 1 - ( z * z / 2 ) - ( x * x / 2 ) + ( z * z * x * x / 3 ) ),
+						z * Math.sqrt( 1 - ( x * x / 2 ) - ( y * y / 2 ) + ( x * x * y * y / 3 ) )
+
+					);
+
+					// stretch along the x-axis so we can see the twist better
+					vertex.set( x * 2, y, z );
+
+					vertex.applyAxisAngle( direction, Math.PI * x / 2 ).toArray( twistPositions, twistPositions.length );
+
+				}
+
+				// add the spherical positions as the first morph target
+				geometry.morphAttributes.position[ 0 ] = new THREE.Float32BufferAttribute( spherePositions, 3 );
+
+				// add the twisted positions as the second morph target
+				geometry.morphAttributes.position[ 1 ] = new THREE.Float32BufferAttribute( twistPositions, 3 );
+
 				return {
-					cube
+					cube,
+					sphere,
+					geometry
 				}
 			}
 			function createCamera() {
@@ -57,19 +135,31 @@
 				const far = 1000; // the far clipping plane
 
 				camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
-				camera.position.set(-4, 2, 4);
+				camera.position.set(-8, 2, 4);
 
 			}
 			function createMeshes() {
 				const materials = createMaterials();
 				const geometries = createGeometries();
-				cubeMesh =  new THREE.Mesh( geometries.cube, materials.cube );
+				
+				cubeMesh =  new THREE.Mesh( geometries.geometry, materials.cube );
+
+				const solarSystem = new THREE.Object3D();
+				
+				solarSystem.add(cubeMesh)
+				
 				const group = new THREE.Group();
-				group.add(cubeMesh);
-				cubeGroup = group;
+				group.add(solarSystem);
+				
 
 				// Add the mesh to the scene
 				scene.add(group);
+
+				return {
+					cube: cubeMesh,
+					
+					solarSystem:solarSystem,
+				}
 			}
 			function createRenderer() {
         		// create the renderer
@@ -109,7 +199,7 @@
 
 
 			// Our Javascript will go here.
-			var scene = new THREE.Scene();
+			scene = new THREE.Scene();
 
 			scene.background = new THREE.Color('skyblue');
 			
@@ -117,9 +207,43 @@
 			
 			createCamera();
 
-			createMeshes()
+			meshes = createMeshes()
 
-			var renderer = new THREE.WebGLRenderer();
+			//Earth
+			var ballMat = new THREE.MeshStandardMaterial( {
+					color: 0xffffff,
+					roughness: 0.5,
+					metalness: 1.0
+				}
+			);
+			var textureLoader = new THREE.TextureLoader();
+			textureLoader.load( "earth_atmos_2048.jpg"
+			, function ( map ) {
+					map.anisotropy = 4;
+					map.encoding = THREE.sRGBEncoding;
+					ballMat.map = map;
+					ballMat.needsUpdate = true;
+				} 
+			);
+
+			textureLoader.load( "earth_specular_2048.jpg", function ( map ) {
+
+			map.anisotropy = 4;
+			map.encoding = THREE.sRGBEncoding;
+			ballMat.metalnessMap = map;
+			ballMat.needsUpdate = true;
+				} 
+			);
+
+			var ballGeometry = new THREE.SphereBufferGeometry( 0.25, 32, 32 );
+			var ballMesh = new THREE.Mesh( ballGeometry, ballMat );
+			ballMesh.position.set( 5, 0.25, 1 );
+			ballMesh.rotation.y = Math.PI;
+			ballMesh.castShadow = true;
+			scene.add( ballMesh );
+
+
+			renderer = new THREE.WebGLRenderer();
 
 			renderer.setSize( window.innerWidth, window.innerHeight );
 
@@ -132,27 +256,27 @@
 			document.body.appendChild( renderer.domElement );
 			
 			
-			var controls = new THREE.OrbitControls(camera, renderer.domElement);
+			controls = new THREE.OrbitControls(camera, renderer.domElement);
 
 			const objectControls = {
 				speed: 1,
 				rotationX: 0,
 				rotationY: 1,
 			}
-		
+	
 			function renderOject(time){
 				time *= 0.001;
 				if (resizeRendererToDisplaySize(renderer)) {
 					const canvas = renderer.domElement;
 					camera.aspect = canvas.clientWidth / canvas.clientHeight;
 					camera.updateProjectionMatrix();
-					}
-					cubeMesh.rotation.x = objectControls.rotationX*time;
-					cubeMesh.rotation.y = objectControls.rotationY*time;
+				}
+				
+				cubeMesh.rotation.x = objectControls.rotationX*time;
+				cubeMesh.rotation.y = objectControls.rotationY*time;
 				renderer.render(scene, camera);
 				requestAnimationFrame(renderOject);
 			}
-
 			//GUI 
 			const datGui  = new dat.GUI({ autoPlace: true });
 
@@ -165,6 +289,24 @@
 			cubeGui.add(objectControls, 'rotationX',0,5).name("rotation X").listen();
 			cubeGui.add(objectControls, 'rotationY',0,5).name("rotation Y").listen();
 			cubeGui.open()
+			var params = {
+					Spherify: 0,
+					Twist: 0,
+			};
+			var folder = datGui.addFolder( 'Morph Targets' );
+
+			folder.add( params, 'Spherify', 0, 1 ).step( 0.01 ).onChange( function ( value ) {
+
+				meshes.cube.morphTargetInfluences[ 0 ] = value;
+
+			} );
+			folder.add( params, 'Twist', 0, 1 ).step( 0.01 ).onChange( function ( value ) {
+
+				meshes.cube.morphTargetInfluences[ 1 ] = value;
+
+			} );
+
+			folder.open();
 			requestAnimationFrame(renderOject)
 			
 		</script>
