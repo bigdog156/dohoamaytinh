@@ -285,12 +285,16 @@
 				cubeMesh.rotation.x = objectControls.rotationX*time;
 				cubeMesh.rotation.y = objectControls.rotationY*time;
 				renderer.render(scene, camera);
-				stats.update();
+				
 				if(params.open ){
 					ballMesh.visible = true;
+					meshes.cube.morphTargetInfluences[ 0 ] = 1;
+					material.cube.color.setHex( 0xff836125);
 				}else{
 					ballMesh.visible = false;
+					meshes.cube.morphTargetInfluences[ 0 ] = 0;
 				}
+				stats.update();
 				requestAnimationFrame(renderOject);
 			}
 
