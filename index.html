@@ -31,6 +31,7 @@
 		<script src="js/stats.module.js"></script>
 		<script>
 			let camera,renderer,scene,controls,mesh,meshGroup,meshes;
+			var player = { height:1.8, speed:0.2, turnSpeed:Math.PI*0.02 };
 			function createMaterials() {
 				const cube =  new THREE.MeshStandardMaterial({
 					color: 0xbe6b6b,
@@ -62,15 +63,22 @@
 			
 			function createLights() {
         		// Create a directional light
-				const ambientLight = new THREE.HemisphereLight(0xddeeff, 0x202020, 9);
-				mainLight = new THREE.DirectionalLight(0xffffff, 3.0);
+				const ambientLight = new THREE.HemisphereLight(0xddeeff, 0x202020, 2);
+				//const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+
+				//mainLight = new THREE.DirectionalLight(0xffffff, 3.0);
+				mainLight = new THREE.PointLight(0xffffff,7,18)
 				scene.add(ambientLight);
 
 				// move the light back and up a bit
-				mainLight.position.set(10, 10, 10);
-
+				mainLight.position.set(-2, 5, -2);
+				mainLight.castShadow = true;
+				// Will not light anything closer than 0.1 units or further than 25 units
+				mainLight.shadow.camera.near = 1;
+				mainLight.shadow.camera.far = 100;
 				// remember to add the light to the scene
-				scene.add(ambientLight, mainLight);
+				scene.add(mainLight);
+
 			}
 			function createGeometries() {
 				const cube = new THREE.BoxGeometry( 1, 1, 1 );
@@ -79,17 +87,12 @@
 				// ADD Feature
 				var geometry = new THREE.BoxBufferGeometry( 2, 2, 2, 32, 32, 32 );
 
-				// create an empty array to  hold targets for the attribute we want to morph
-				// morphing positions and normals is supported
 				geometry.morphAttributes.position = [];
 
-				// the original positions of the cube's vertices
 				var positions = geometry.attributes.position.array;
 
-				// for the first morph target we'll move the cube's vertices onto the surface of a sphere
 				var spherePositions = [];
 
-				// for the second morph target, we'll twist the cubes vertices
 				var twistPositions = [];
 				var direction = new THREE.Vector3( 1, 0, 0 ).normalize();
 				var vertex = new THREE.Vector3();
@@ -108,17 +111,14 @@
 
 					);
 
-					// stretch along the x-axis so we can see the twist better
 					vertex.set( x * 2, y, z );
 
 					vertex.applyAxisAngle( direction, Math.PI * x / 2 ).toArray( twistPositions, twistPositions.length );
 
 				}
 
-				// add the spherical positions as the first morph target
 				geometry.morphAttributes.position[ 0 ] = new THREE.Float32BufferAttribute( spherePositions, 3 );
 
-				// add the twisted positions as the second morph target
 				geometry.morphAttributes.position[ 1 ] = new THREE.Float32BufferAttribute( twistPositions, 3 );
 
 				return {
@@ -129,13 +129,14 @@
 			}
 			function createCamera() {
 				// Create a Camera
-				const fov = 40; // AKA Field of View
+				const fov = 50; // AKA Field of View
 				const aspect = window.innerWidth / window.innerHeight;
 				const near = 0.1; // the near clipping plane
 				const far = 1000; // the far clipping plane
 
 				camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 				camera.position.set(-8, 2, 4);
+				camera.lookAt(new THREE.Vector3(0,4,0));
 
 			}
 			function createMeshes() {
@@ -143,7 +144,7 @@
 				const geometries = createGeometries();
 				
 				cubeMesh =  new THREE.Mesh( geometries.geometry, materials.cube );
-
+				cubeMesh.castShadow = true;
 				const solarSystem = new THREE.Object3D();
 				
 				solarSystem.add(cubeMesh)
@@ -259,10 +260,30 @@
 			
 			renderer.physicallyCorrectLights = true;
 
-			document.body.appendChild( renderer.domElement );
+			// Shadow
+			meshFloor = new THREE.Mesh(
+				new THREE.PlaneGeometry(15,15, 15,15),
+				// MeshBasicMaterial does not react to lighting, so we replace with MeshPhongMaterial
+				new THREE.MeshPhongMaterial({color:0xffffff, wireframe:false})
+				// See threejs.org/examples/ for other material types
+			);
+			meshFloor.rotation.x -= Math.PI / 2;
+			meshFloor.position.y = -1.5
+			// Floor can have shadows cast onto it
+			meshFloor.receiveShadow = true;
+			meshFloor.castShadow = true;
+			scene.add(meshFloor);
+
+			// HEART SHAPE --------------
 			
-			
+
+			// ---------------------
+			renderer.shadowMap.enabled = true;
+			// renderer.outputEncoding = THREE.sRGBEncoding;
+			renderer.shadowMap.type = THREE.BasicShadowMap;
+			//
 			controls = new THREE.OrbitControls(camera, renderer.domElement);
+			document.body.appendChild( renderer.domElement );
 
 			const objectControls = {
 				speed: 1,
